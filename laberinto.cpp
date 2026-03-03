@@ -49,12 +49,12 @@ vector<vector<char>> generarLaberinto(int totalFilas, int totalCols) {
     }
 
     // 3. Colocar muros aleatorios evitando bloquear la ruta segura
-    for (int i = 0; i < totalFilas; i++) {
+    for (int i = 0; i < totalFilas; i++) { // recorre 
         for (int j = 0; j < totalCols; j++) {
             
-            bool esCaminoBase = false;
-            for (auto &p : caminoGarantizado) {
-                if (p.fila == i && p.columna == j) {
+            bool esCaminoBase = false;  // Inicializa una variable para saber si la celda pertenece al camino seguro
+            for (auto &p : caminoGarantizado) { // Recorre todas las posiciones del camino garantizado.
+                if (p.fila == i && p.columna == j) { // camino garantizado
                     esCaminoBase = true;
                     break;
                 }
@@ -108,7 +108,7 @@ bool resolverLaberinto(vector<vector<char>> &lab) {
     bool encontrado = false;
 
     // Bucle principal de búsqueda
-    while (!colaBusqueda.empty()) {
+    while (!colaBusqueda.empty()) { // guarda las celdas que aún necesitamos visitar.
         
         Posicion actual = colaBusqueda.front();
         colaBusqueda.pop();
