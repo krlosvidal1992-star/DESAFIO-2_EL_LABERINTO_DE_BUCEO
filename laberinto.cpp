@@ -3,64 +3,77 @@
 #include <queue>
 #include <cstdlib>
 #include <ctime>
-#include <chrono> // Librería para medir el tiempo de ejecución
+#include <chrono>
 
 using namespace std;
 using namespace std::chrono;
-     
-// ESTRUCTURAS Y CONSTANTES
 
+/* ESTRUCTURA DE POSICIÓN
+   Define un objeto simple para almacenar coordenadas (fila y columna).
+   Se utiliza para identificar celdas en la matriz y rastrear el camino.
+*/
 struct Posicion {
     int fila;
     int columna;
 };
 
+/* CONSTANTES GLOBALES
+   Definen los caracteres que se mostrarán en la terminal. 
+   Centralizar esto permite cambiar el diseño visual del laberinto 
+   modificando un solo lugar en el código.
+*/
 const char MURO   = '#';
 const char CAMINO = '.';
 const char RASTRO = 'o';
 const char INICIO = 'S';
 const char META   = 'E';
-   
-// GENERACIÓN DEL LABERINTO
 
-
+/* BLOQUE: GENERACIÓN PROCEDIMENTAL DEL LABERINTO
+   Esta función crea el tablero. Primero garantiza que exista una solución 
+   trazando una ruta aleatoria (derecha/abajo) y luego puebla el resto 
+   del mapa con muros aleatorios sin obstruir dicha ruta.
+*/
 vector<vector<char>> generarLaberinto(int totalFilas, int totalCols) {
     
-    // 1. Inicializar tablero lleno de caminos transitables (.)
     vector<vector<char>> laberinto(totalFilas, vector<char>(totalCols, CAMINO));
     vector<Posicion> caminoGarantizado;
     
-    int f = 0, c = 0;
+    int f = 0; 
+    int c = 0;
+    
     caminoGarantizado.push_back({f, c});
     srand(time(0));
 
-    // 2. Crear una ruta segura desde el inicio hasta el fin
+    // Generación del camino seguro (Arquitecto)
     while (f < totalFilas - 1 || c < totalCols - 1) {
         if (f == totalFilas - 1) {
             c++;
-        } else if (c == totalCols - 1) {
+        } 
+        else if (c == totalCols - 1) {
             f++;
-        } else if (rand() % 2 == 0) {
+        } 
+        else if (rand() % 2 == 0) {
             f++;
-        } else {
+        } 
+        else {
             c++;
         }
         caminoGarantizado.push_back({f, c});
     }
 
-    // 3. Colocar muros aleatorios evitando bloquear la ruta segura
-    for (int i = 0; i < totalFilas; i++) { // recorre 
+    // Colocación de obstáculos aleatorios (33% de probabilidad)
+    for (int i = 0; i < totalFilas; i++) {
         for (int j = 0; j < totalCols; j++) {
             
-            bool esCaminoBase = false;  // Inicializa una variable para saber si la celda pertenece al camino seguro
-            for (auto &p : caminoGarantizado) { // Recorre todas las posiciones del camino garantizado.
-                if (p.fila == i && p.columna == j) { // camino garantizado
+            bool esCaminoBase = false;
+            for (auto &p : caminoGarantizado) {
+                if (p.fila == i && p.columna == j) {
                     esCaminoBase = true;
                     break;
                 }
             }
 
-            if (!esCaminoBase && rand() % 3 == 0) {
+            if (esCaminoBase == false && rand() % 3 == 0) {
                 laberinto[i][j] = MURO;
             }
         }
@@ -72,22 +85,25 @@ vector<vector<char>> generarLaberinto(int totalFilas, int totalCols) {
     return laberinto;
 }
 
-     
-// VISUALIZACIÓN EN TERMINAL
-
-
+/* BLOQUE: RENDERIZADO VISUAL
+   Se encarga de recorrer la matriz bidimensional e imprimir cada carácter.
+   Añade un espacio entre celdas para mantener la proporción cuadrada en la consola.
+*/
 void imprimirLaberinto(const vector<vector<char>> &lab) {
-    
     for (const auto &fila : lab) {
         for (char celda : fila) {
-            cout << celda << " "; // El espacio mejora la estética cuadrada
+            cout << celda << " "; 
         }
         cout << endl;
     }
 }
-      
-// ALGORITMO DE RESOLUCIÓN (BFS)
 
+/* BLOQUE: ALGORITMO DE RESOLUCIÓN (BFS)
+   Utiliza una búsqueda en anchura para encontrar la ruta más corta. 
+   Explora el laberinto por "capas" usando una cola (queue). 
+   Mantiene un registro de 'visitados' para evitar ciclos y una matriz 
+   de 'padres' para poder reconstruir el camino una vez hallada la meta.
+*/
 bool resolverLaberinto(vector<vector<char>> &lab) {
     
     int filas = lab.size();
@@ -97,18 +113,16 @@ bool resolverLaberinto(vector<vector<char>> &lab) {
     vector<vector<Posicion>> rastroPadres(filas, vector<Posicion>(cols, {-1, -1}));
     queue<Posicion> colaBusqueda;
 
-    // Configuración inicial
     colaBusqueda.push({0, 0});
     visitado[0][0] = true;
 
-    // Definición de movimientos (Norte, Sur, Oeste, Este)
     int dFila[] = {-1, 1, 0, 0};
     int dCol[]  = {0, 0, -1, 1};
 
     bool encontrado = false;
 
-    // Bucle principal de búsqueda
-    while (!colaBusqueda.empty()) { // guarda las celdas que aún necesitamos visitar.
+    // Proceso de exploración
+    while (colaBusqueda.empty() == false) {
         
         Posicion actual = colaBusqueda.front();
         colaBusqueda.pop();
@@ -118,25 +132,25 @@ bool resolverLaberinto(vector<vector<char>> &lab) {
             break;
         }
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) { // direcciones de busqueda 
             int nFila = actual.fila + dFila[i];
             int nCol  = actual.columna + dCol[i];
 
-            if (nFila >= 0 && nFila < filas && nCol >= 0 && nCol < cols &&
-                !visitado[nFila][nCol] && lab[nFila][nCol] != MURO) {
+            if (nFila >= 0 && nFila < filas && nCol >= 0 && nCol < cols && // filtro
+                visitado[nFila][nCol] == false && lab[nFila][nCol] != MURO) {
                 
-                visitado[nFila][nCol] = true;
+                visitado[nFila][nCol] = true; // marca 
                 rastroPadres[nFila][nCol] = actual;
-                colaBusqueda.push({nFila, nCol});
+                colaBusqueda.push({nFila, nCol});// agenda 
             }
         }
     }
 
-    if (!encontrado) return false;
+    if (encontrado == false) return false;
 
-    // Reconstrucción del camino trazando la ruta de 'o'
+    // Bloque de reconstrucción del camino (Retroceso)
     Posicion paso = {filas - 1, cols - 1};
-    while (!(paso.fila == 0 && paso.columna == 0)) {
+    while (paso.fila != 0 || paso.columna != 0) {
         if (lab[paso.fila][paso.columna] != META) {
             lab[paso.fila][paso.columna] = RASTRO;
         }
@@ -146,32 +160,33 @@ bool resolverLaberinto(vector<vector<char>> &lab) {
     return true;
 }
 
-
-// PUNTO DE ENTRADA DEL PROGRAMA
-
-
+/* BLOQUE PRINCIPAL (MAIN)
+   Punto de entrada del programa. Gestiona la lógica de ejecución:
+   1. Configura dimensiones.
+   2. Genera y muestra el laberinto original.
+   3. Activa el cronómetro de alta resolución.
+   4. Resuelve el laberinto y muestra el tiempo final en microsegundos.
+*/
 int main(int argc, char* argv[]) {
     
-    int filas = 10, columnas = 10;
+    int filas = 10;
+    int columnas = 10;
 
-    // Procesar argumentos de consola
     if (argc >= 3) {
         filas    = atoi(argv[1]);
         columnas = atoi(argv[2]);
     }
 
     if (filas < 2 || columnas < 2) {
-        cout << "Error: Las dimensiones mínimas son 2x2." << endl;
+        cout << "Error: Dimensiones mínimas 2x2." << endl;
         return 1;
     }
 
-    // Generación inicial
     vector<vector<char>> miLaberinto = generarLaberinto(filas, columnas);
 
-    cout << "\n--- LABERINTO ORIGINAL ---" << endl;
+    cout << "\n--- LABERINTO GENERADO ---\n" << endl;
     imprimirLaberinto(miLaberinto);
 
-    // Medición de rendimiento
     auto tiempoInicio = high_resolution_clock::now();
 
     bool exito = resolverLaberinto(miLaberinto);
@@ -179,20 +194,23 @@ int main(int argc, char* argv[]) {
     auto tiempoFin = high_resolution_clock::now();
     auto duracion  = duration_cast<microseconds>(tiempoFin - tiempoInicio);
 
-    // Resultados finales
-    cout << "\n--- LABERINTO RESUELTO ---" << endl;
+    cout << "\n--- LABERINTO RESUELTO ---\n" << endl;
     imprimirLaberinto(miLaberinto);
 
-    if (exito) {
-        cout << "\n¡Camino encontrado con éxito!" << endl;
-        cout << "Tiempo de respuesta: " << duracion.count() << " microsegundos." << endl;
-    } else {
-        cout << "\nNo se pudo hallar una ruta de salida." << endl;
+    if (exito == true) {
+        cout << "Resultado: Camino encontrado con éxito." << endl;
+        cout << "Rendimiento: " << duracion.count() << " microsegundos." << endl;
+    } 
+    else {
+        cout << "Resultado: No se encontró solución." << endl;
     }
 
-    cout << "\nPresiona Enter para finalizar el proceso...";
+    cout << "\nPresiona Enter para cerrar...";
     cin.ignore();
     cin.get();
+
+    return 0;
+}
 
     return 0;
 }
